@@ -43,11 +43,11 @@
         
         const out = document.querySelector('#out');
         
-        socket.emit('retrieve');
         
         socket.on('clientConnected', function onClientConnected(clientId) {
             _clientId = clientId;
             console.log(`Connected with clientId: ${_clientId}`);
+            socket.emit('retrieve', _clientId);
         });
         
         socket.on('clicks', function onClicksRetrieved(points) {

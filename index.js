@@ -72,8 +72,9 @@ function onClientClick(msgObj) {
     //socket.broadcast.emit('click', {x, y});
 }
 
-function onRetrieveClicks() {
-    io.emit('clicks', points);
+function onRetrieveClicks(clientId) {
+    connectedUsersObj[clientId]?.emit('clicks', points);
+    //io.emit('clicks', points);
 }
 
 
