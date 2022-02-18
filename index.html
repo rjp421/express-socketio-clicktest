@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test</title>
+    <style>
+        body {
+            margin: 0;
+        }
+        #out {
+            background-color: rgb(255, 255, 255);
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="out"></div>
+    
+    <!-- <script src="/socket.io/socket.io.js"></script> -->
+    <script src="https://cdn.socket.io/4.4.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const radius = 12;
+
+        let circles;
+        let _clientId;
+
+        const circle = (x, y, radius) => {
+            const element = document.createElement('div');
+            element.style.width = `${radius}px`;
+            element.style.height = `${radius}px`;
+            element.style.borderRadius = '100%';
+            element.style.position = 'fixed';
+            element.style.backgroundColor = 'black';
+            element.style.top = `${y}px`;
+            element.style.left = `${x}px`;
+            return element;
+        };
+        
+        const out = document.querySelector('#out');
+        
+        socket.emit('retrieve');
+        
+        socket.on('clientConnected', function onClientConnected(clientId) {
+            _clientId = clientId;
+            console.log(`Connected with clientId: ${_clientId}`);
+        });
+
+        socket.on('clicks', function onClicksRetrieved(points) {
+            circles = points.map(point => circle(point.x, point.y, radius));
+            circles.forEach(c => out.append(c));
+            
+            console.log(points);
+        });
+        
+        socket.on('click', function onClientClick(msgObj) {
+            const {x, y} = msgObj;
+            //points.push({x, y});
+            //console.log(points);
+            out.append(circle(x, y, radius));
+
+            console.log(`Client clicked:  X:${x}  Y: ${y}`);
+        });
+
+        document.addEventListener('click', function onMouseClick(e) {
+            const {x,y} = e;
+            out.append(circle(x, y, radius));
+            console.log(`Clicked mouse, X: ${x} Y: ${y}`);
+            socket.emit('click', {clientId:_clientId, x, y});
+        });
+    </script>
+</body>
+</html>
