@@ -64,17 +64,18 @@ function onIOConnect(socket) {
 }
 
 function onClientClick(msgObj) {
-    //console.log(msgObj);
     const {clientId, x, y} = msgObj;
+    if (!connectedUsersObj[clientId]) return;
+    
     points.push({x, y});
     console.log(`Client ${clientId} clicked ${x},${y}.`);
-    connectedUsersObj[clientId]?.broadcast.emit('click', {x, y});
-    //socket.broadcast.emit('click', {x, y});
+    connectedUsersObj[clientId].broadcast.emit('click', {x, y});
 }
 
 function onRetrieveClicks(clientId) {
-    connectedUsersObj[clientId]?.emit('clicks', points);
-    //io.emit('clicks', points);
+    if (!connectedUsersObj[clientId]) return;
+
+    connectedUsersObj[clientId].emit('clicks', points);
 }
 
 
