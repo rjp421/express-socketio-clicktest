@@ -14,6 +14,8 @@ const port = 8080;
 const connectedUsersObj = {};
 const points = [];
 
+
+
 app.disable('etag').disable('x-powered-by');
 
 app.get('/', onHTTPGetHandler);
@@ -63,6 +65,7 @@ function onIOConnect(socket) {
 
     connectedUsersObj[socket.uuid] = socket;
 }
+
 
 
 function onClientClick(msgObj) {
