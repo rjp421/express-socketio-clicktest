@@ -19,7 +19,8 @@
 <body>
     <div id="controls">
         <button id="clearClicks_Btn">Clear</button>
-        <input type="number" id="changeRadius_NS" min="2" max="32" value="12" required>
+        <button id="undoClick_Btn">Undo</button>
+        <input type="number" id="changeRadius_NS" min="2" max="128" value="12" required>
         <input type="color" id="colorChoice">
     </div>
     <div id="out">
@@ -46,6 +47,7 @@
         };
         
         const clearClicks_Btn = document.querySelector('#clearClicks_Btn');
+        const undoClick_Btn = document.querySelector('#undoClick_Btn');
         const changeRadius_NS = document.querySelector('#changeRadius_NS');
         const colorChoice = document.querySelector('#colorChoice');
         const out = document.querySelector('#out');
@@ -66,7 +68,7 @@
         
         // on click points retrieved from the server
         socket.on('clicks', function onClicksRetrieved(points) {
-            // clear old circles
+            // clear old circles, in case of reconnecting etc
             clearItems();
 
             // create an Array of div elements (circle) from each item in points
@@ -81,50 +83,79 @@
         // on new click from another client
         socket.on('click', function onClientClick(msgObj) {
             const {x, y, radius, color} = msgObj;
-            //points.push({x, y, radius, color});
-            //console.log(points);
+            const c = circle(x, y, radius, color);
+
+            circles.push(c);
 
             // append circle to the out div
-            out.append(circle(x, y, radius, color));
+            out.append(c);
 
             console.log(`Client clicked:  X: ${x}  Y: ${y}  radius: ${radius}  color: ${color}`);
         });
 
+        // clear items called from the server
         socket.on('clearItems', function onClearItems() {
-            // clear items called from the server
             console.log('clearItems called from the server, CLEARING');
 
             clearItems();
+        });
+        
+        // TODO merge into clearItems and pass the specific item(s) to clear
+        socket.on('undoItem', function onUndoItem() {
+            // undo item called from the server
+            console.log('undoItem called from the server, UNDOING');
+
+            // pop the last item from the circles Array, ugly but shorthand didnt work?
+            if (circles.length) { circles.pop(); } else { return; }
+
+            // remove the last element from the out div
+            out.removeChild(out.lastChild);
         });
 
 
         // on mouse click
         document.addEventListener('click', function onMouseClick(e) {
-            // if we didnt click something in controls, TODO fix
-            if ((e.target.id == 'clearClicks_Btn') || (e.target.id == 'changeRadius_NS') || (e.target.id == 'colorChoice')) return;
+            // if we didnt click something in controls, TODO fix, howto check if it is type HTMLButtonElement etc, or in controls div?
+            if ((e.target.id == 'clearClicks_Btn') || (e.target.id == 'undoClick_Btn') || (e.target.id == 'changeRadius_NS') || (e.target.id == 'colorChoice')) return;
 
             // get x,y from the click event object
             const {x,y} = e;
 
-            // TODO add to circles Array
+            // TEST add new clicks to circles Array
             // append a new circle to the out div
-            out.append(circle(x, y, localRadius, localColor));
+            const c = circle(x, y, localRadius, localColor);
+            circles.push(c);
+            out.append(c);
 
             // send an object to the server with the private uuid (clientId),
             // the color and radius chosen, and x, y coordinates
             socket.emit('click', {clientId: _clientId, color: localColor, radius: localRadius, x, y});
 
-            console.log(`Clicked  X: ${x} Y: ${y}  target: ${e.target}  currentTarget: ${e.currentTarget}`);
+            console.log(`Clicked  X: ${x} Y: ${y}  target: ${e.target}  currentTarget: ${e.currentTarget}  circles.length: ${circles.length}`);
         });
         
         // clicked the clear button
         function clearClicks_Btn_onClickHandler(e) {
-            console.log(`CLEARING  ${e.target.id}  target: ${e.target}  currentTarget: ${e.currentTarget}  out.childNodes.length: ${out.childNodes.length}`);
+            console.log(`CLEAR  ${e.target.id}  target: ${e.target}  currentTarget: ${e.currentTarget}  out.childNodes.length: ${out.childNodes.length}  circles.length: ${circles.length}`);
             
             clearItems();
 
             // tell the server to clear items
             socket.emit('clearItems', _clientId);
+        }
+        
+        // undo a click
+        function undoClick_Btn_onClickHandler(e) {
+            console.log(`UNDO  ${e.target.id}  target: ${e.target}  currentTarget: ${e.currentTarget}  out.childNodes.length: ${out.childNodes.length}  circles.length: ${circles.length}`);
+            
+            // pop the last item from the circles Array, ugly but shorthand didnt work?
+            if (circles.length) { circles.pop(); } else { return; }
+
+            // remove the last element from the out div
+            out.removeChild(out.lastChild);
+
+            // then send undo to the server
+            socket.emit('undoItem', _clientId);
         }
         
         // the radius changed
@@ -166,6 +197,7 @@
 
         // controls
         clearClicks_Btn.addEventListener('click', clearClicks_Btn_onClickHandler);
+        undoClick_Btn.addEventListener('click', undoClick_Btn_onClickHandler);
         changeRadius_NS.addEventListener('change', changeRadius_NS_onChangeHandler);
         colorChoice.addEventListener('change', colorChoice_onChangeHandler);
 
