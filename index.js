@@ -59,13 +59,13 @@ function onIOConnect(socket) {
     socket.on('disconnect', function onSocketDisconnect(reason) {
         console.log(`Client disconnected:  ${socket.handshake.address}  sid:${socket.id}  uuid:${socket.uuid} - ${reason}`);
         delete connectedUsersObj[socket.uuid];
+        //delete socket.uuid;
     });
 
     socket.emit('clientConnected', socket.uuid);
 
     connectedUsersObj[socket.uuid] = socket;
 }
-
 
 
 function onClientClick(msgObj) {
@@ -82,6 +82,8 @@ function onClientClick(msgObj) {
 
 function onRetrieveClicks(clientId) {
     if (!connectedUsersObj[clientId]) return;
+
+    console.log(points);
 
     connectedUsersObj[clientId].emit('clicks', points);
 }
