@@ -49,13 +49,14 @@ function onIOConnect(socket) {
 
     console.log(`Client connected:  ${socket.handshake.address}  sid:${socket.id}  uuid:${socket.uuid}`);
     
-    socket.on('click', onClientClick);
-    
+    socket.on('click', onClientClick);    
     socket.on('retrieve', onRetrieveClicks);
+    socket.on('clearItems', onClearItems);
 
     socket.on('disconnect', function onSocketDisconnect(reason) {
-        console.log(`Client ${socket.id} disconnected: ${reason}`);
+        console.log(`Client disconnected:  ${socket.handshake.address}  sid:${socket.id}  uuid:${socket.uuid} - ${reason}`);
         delete connectedUsersObj[socket.uuid];
+        //delete socket.uuid;
     });
 
     socket.emit('clientConnected', socket.uuid);
@@ -63,21 +64,39 @@ function onIOConnect(socket) {
     connectedUsersObj[socket.uuid] = socket;
 }
 
+
 function onClientClick(msgObj) {
-    const {clientId, x, y} = msgObj;
+    const {clientId, color, radius, x, y} = msgObj;
     if (!connectedUsersObj[clientId]) return;
     
-    points.push({x, y});
-    console.log(`Client ${clientId} clicked ${x},${y}.`);
-    connectedUsersObj[clientId].broadcast.emit('click', {x, y});
+    points.push({x, y, radius, color});
+
+    connectedUsersObj[clientId].broadcast.emit('click', {x, y, radius, color});
+    
+    console.log(`Client ${connectedUsersObj[clientId].handshake.address}/${clientId} clicked ${x},${y}.`);
 }
+
 
 function onRetrieveClicks(clientId) {
     if (!connectedUsersObj[clientId]) return;
 
+    console.log(points);
+
     connectedUsersObj[clientId].emit('clicks', points);
 }
 
+
+function onClearItems(clientId) {
+    if (!connectedUsersObj[clientId]) return;
+
+    // empty the points Array
+    while (points.length) points.pop();
+
+    console.log(`Client ${connectedUsersObj[clientId].handshake.address}/${clientId} cleared the points Array, new length: ${points.length}`);
+    
+    // tell the other clients to clear items
+    connectedUsersObj[clientId].broadcast.emit('clearItems');
+}
 
 
 

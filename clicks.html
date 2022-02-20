@@ -17,8 +17,11 @@
     </style>
 </head>
 <body>
-    <div id="out"></div>
-    
+
+    <div id="out">
+        <button id="clearClicks_Btn">Clear</button>
+    </div>
+
     <!-- <script src="/socket.io/socket.io.js"></script> -->
     <script src="https://cdn.socket.io/4.4.1/socket.io.js"></script>
     <script>
@@ -29,20 +32,21 @@
         let circles;
         let _clientId;
 
-        const circle = (x, y, radius) => {
+        const circle = (x, y, radius, color='black') => {
             const element = document.createElement('div');
             element.style.width = `${radius}px`;
             element.style.height = `${radius}px`;
             element.style.borderRadius = '100%';
             element.style.position = 'fixed';
-            element.style.backgroundColor = 'black';
+            element.style.backgroundColor = color;
             element.style.top = `${y}px`;
             element.style.left = `${x}px`;
             return element;
         };
         
         const out = document.querySelector('#out');
-        
+        const clearClicks_Btn = document.querySelector('#clearClicks_Btn');
+
         
         socket.on('clientConnected', function onClientConnected(clientId) {
             _clientId = clientId;
@@ -65,6 +69,13 @@
 
             console.log(`Client clicked:  X:${x}  Y: ${y}`);
         });
+        
+        function clearClicks_Btn_onClickHandler(e) {
+            console.log(`Clicked  ${e.target.id}`);
+            
+        }
+
+        clearClicks_Btn.addEventListener('click', clearClicks_Btn_onClickHandler);
 
     </script>
 </body>

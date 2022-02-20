@@ -1,7 +1,7 @@
 {
   "name": "express-socketio-clicktest",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.1.1",
+  "description": "based on the Click Capture example app for the Node.js course on ITPro.TV",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
