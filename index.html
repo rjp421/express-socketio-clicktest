@@ -17,60 +17,158 @@
     </style>
 </head>
 <body>
-    <div id="out"></div>
+    <div id="controls">
+        <button id="clearClicks_Btn">Clear</button>
+        <input type="number" id="changeRadius_NS" min="2" max="32" value="12" required>
+        <input type="color" id="colorChoice">
+    </div>
+    <div id="out">
+    </div>
     
     <!-- <script src="/socket.io/socket.io.js"></script> -->
     <script src="https://cdn.socket.io/4.4.1/socket.io.js"></script>
     <script>
         const socket = io();
-        const radius = 12;
 
-        let circles;
+        let circles = [];
         let _clientId;
-
-        const circle = (x, y, radius) => {
+        
+        const circle = (x, y, radius=localRadius, color='black') => {
             const element = document.createElement('div');
             element.style.width = `${radius}px`;
             element.style.height = `${radius}px`;
             element.style.borderRadius = '100%';
             element.style.position = 'fixed';
-            element.style.backgroundColor = 'black';
+            element.style.backgroundColor = color;
             element.style.top = `${y}px`;
             element.style.left = `${x}px`;
             return element;
         };
         
+        const clearClicks_Btn = document.querySelector('#clearClicks_Btn');
+        const changeRadius_NS = document.querySelector('#changeRadius_NS');
+        const colorChoice = document.querySelector('#colorChoice');
         const out = document.querySelector('#out');
         
-        
+        let localRadius = changeRadius_NS.value;
+        let localColor = colorChoice.value;
+
+
+        // on client connection to socket.io
         socket.on('clientConnected', function onClientConnected(clientId) {
+            // get a private uuid to verify this clients identity on the server side
             _clientId = clientId;
             console.log(`Connected with clientId: ${_clientId}`);
+
+            // get the click points from the server
             socket.emit('retrieve', _clientId);
         });
-
+        
+        // on click points retrieved from the server
         socket.on('clicks', function onClicksRetrieved(points) {
-            circles = points.map(point => circle(point.x, point.y, radius));
+            // clear old circles
+            clearItems();
+
+            // create an Array of div elements (circle) from each item in points
+            circles = points.map(point => circle(point.x, point.y, point.radius, point.color));
+            // append each circle to the out div
             circles.forEach(c => out.append(c));
             
-            console.log(points);
+            //console.log(circles);
+            //console.log(points);
         });
         
+        // on new click from another client
         socket.on('click', function onClientClick(msgObj) {
-            const {x, y} = msgObj;
-            //points.push({x, y});
+            const {x, y, radius, color} = msgObj;
+            //points.push({x, y, radius, color});
             //console.log(points);
-            out.append(circle(x, y, radius));
 
-            console.log(`Client clicked:  X:${x}  Y: ${y}`);
+            // append circle to the out div
+            out.append(circle(x, y, radius, color));
+
+            console.log(`Client clicked:  X: ${x}  Y: ${y}  radius: ${radius}  color: ${color}`);
         });
 
+        socket.on('clearItems', function onClearItems() {
+            // clear items called from the server
+            console.log('clearItems called from the server, CLEARING');
+
+            clearItems();
+        });
+
+
+        // on mouse click
         document.addEventListener('click', function onMouseClick(e) {
+            // if we didnt click something in controls, TODO fix
+            if ((e.target.id == 'clearClicks_Btn') || (e.target.id == 'changeRadius_NS') || (e.target.id == 'colorChoice')) return;
+
+            // get x,y from the click event object
             const {x,y} = e;
-            out.append(circle(x, y, radius));
-            console.log(`Clicked mouse, X: ${x} Y: ${y}`);
-            socket.emit('click', {clientId:_clientId, x, y});
+
+            // TODO add to circles Array
+            // append a new circle to the out div
+            out.append(circle(x, y, localRadius, localColor));
+
+            // send an object to the server with the private uuid (clientId),
+            // the color and radius chosen, and x, y coordinates
+            socket.emit('click', {clientId: _clientId, color: localColor, radius: localRadius, x, y});
+
+            console.log(`Clicked  X: ${x} Y: ${y}  target: ${e.target}  currentTarget: ${e.currentTarget}`);
         });
+        
+        // clicked the clear button
+        function clearClicks_Btn_onClickHandler(e) {
+            console.log(`CLEARING  ${e.target.id}  target: ${e.target}  currentTarget: ${e.currentTarget}  out.childNodes.length: ${out.childNodes.length}`);
+            
+            clearItems();
+
+            // tell the server to clear items
+            socket.emit('clearItems', _clientId);
+        }
+        
+        // the radius changed
+        function changeRadius_NS_onChangeHandler(e) {
+            localRadius = changeRadius_NS.value;
+            console.log(`Radius changed  ${localRadius}  ${e.target.id}  target: ${e.target}  currentTarget: ${e.currentTarget}`);
+        }
+        
+        // color changed
+        function colorChoice_onChangeHandler(e) {
+            localColor = colorChoice.value;
+            console.log(`Color changed  ${localColor}  ${e.target.id}  target: ${e.target}  currentTarget: ${e.currentTarget}`);
+        }
+        
+
+        // remove all circles
+        function clearItems() {
+            // for testing
+            //circles.splice(0, circles.length);
+            //circles.length = 0;
+            
+            // empty the circles Array
+            while (circles.length) {
+                circles.pop();
+            }
+            
+            // remove all div elements from the out div
+            // NOTE created a separate div for controls, to not 
+            // delete them from the out div while deleting circles
+            removeAllChildNodes(out);
+        }
+
+        // remove elements from a parent element
+        function removeAllChildNodes(parent) {
+            while (parent.firstChild) {
+                parent.removeChild(parent.firstChild);
+            }
+        }
+
+        // controls
+        clearClicks_Btn.addEventListener('click', clearClicks_Btn_onClickHandler);
+        changeRadius_NS.addEventListener('change', changeRadius_NS_onChangeHandler);
+        colorChoice.addEventListener('change', colorChoice_onChangeHandler);
+
     </script>
 </body>
 </html>
